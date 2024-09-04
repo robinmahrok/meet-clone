@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import HomeScreen from '../../screens/HomeScreen';
 const HomeComponent = () => {
-    const [roomId, setRoomId] = useState('');
-    const navigate = useNavigate();
+    const [url, setUrl] = useState('');
 
-    const handleJoin = () => {
-        if (roomId.trim()) {
-            navigate(`/room/${roomId}`);
-        }
+    const handleChange = (e) => setUrl(e.target.value);
+  
+    const join = () => {
+      if (url !== '') {
+        const urlParts = url.split('/');
+        window.location.href = `/${urlParts[urlParts.length - 1]}`;
+      } else {
+        const randomUrl = Math.random().toString(36).substring(2, 7);
+        window.location.href = `/${randomUrl}`;
+      }
     };
-
+  
     return (
-        <HomeScreen
-            roomId={roomId}
-            setRoomId={setRoomId}
-            handleJoin={handleJoin}
-        />
+    <HomeScreen join={join} handleChange={handleChange}/>
     );
 };
 
