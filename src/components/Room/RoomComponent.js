@@ -10,7 +10,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 import RoomScreen from '../../screens/RoomScreen';
 // import './Video.css';
 
-const server_url = 'https://meet-server-7eq1.onrender.com';
+const server_url = 'https://meet-clone-assignment.netlify.app';
 
 var connections = {};
 const peerConnectionConfig = {
