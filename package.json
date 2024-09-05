@@ -32,7 +32,7 @@
   },
   "preinstall": "nodemon server.js", 
   "scripts": {
-    "start": "concurrently -n 'server,client' -c 'red,green'  \"nodemon server.js\" \"react-scripts start\"",
+    "start": "concurrently -n 'server,client' -c 'red,green'  \"node server.js\" \"react-scripts start\"",
     "build": "concurrently \"nodemon server.js\" \"react-scripts build\"",
     "server": "concurrently NODE_ENV=production \"nodemon server.js\" \"react-scripts start\"",
     "test": "react-scripts test",
