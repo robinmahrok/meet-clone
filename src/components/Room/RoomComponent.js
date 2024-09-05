@@ -285,6 +285,7 @@ const RoomComponent = () => {
 
     socket.on('connect', () => {
       socketId = socket.id;
+      console.log(socketId,'@@socketId');
       socket.emit('join-call', window.location.href)
       socketId = socket.id
 
