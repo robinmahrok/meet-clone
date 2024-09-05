@@ -30,8 +30,9 @@
     "xss": "^1.0.8"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "concurrently -n 'server,client' -c 'red,green'  \"nodemon server.js\" \"react-scripts start\"",
     "build": "react-scripts build",
+    "server": "concurrently NODE_ENV=production \"nodemon server.js\" \"react-scripts start\"",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

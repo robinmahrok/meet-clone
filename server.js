@@ -1,57 +1,111 @@
-// server.js
+const express = require('express')
+const http = require('http')
+var cors = require('cors')
+const app = express()
+const bodyParser = require('body-parser')
+const path = require("path")
+var xss = require("xss")
 
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
+var server = http.createServer(app)
+var io = require('socket.io')(server)
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIo(server);
+app.use(cors())
+app.use(bodyParser.json())
 
-const PORT =  5000;
+if(process.env.NODE_ENV==='production'){
+	app.use(express.static(__dirname+"/build"))
+	app.get("*", (req, res) => {
+		res.sendFile(path.join(__dirname+"/build/index.html"))
+	})
+}
+app.set('port', (process.env.PORT || 4001))
 
-// Serve static files from the 'public' directory
-app.use(express.static('public'));
+sanitizeString = (str) => {
+	return xss(str)
+}
+
+connections = {}
+messages = {}
+timeOnline = {}
 
 io.on('connection', (socket) => {
-  console.log('New user connected:', socket.id);
+	socket.on('join-call', (path) => {
+		if(connections[path] === undefined){
+			connections[path] = []
+		}
+		connections[path].push(socket.id)
 
-  // When a user joins a room
-  socket.on('join-room', (roomId) => {
-    socket.join(roomId);
-    console.log(`User ${socket.id} joined room ${roomId}`);
+		timeOnline[socket.id] = new Date()
 
-    // Notify other users in the room
-    socket.to(roomId).emit('user-joined', { signal: null, callerID: socket.id });
+		for(let a = 0; a < connections[path].length; ++a){
+			io.to(connections[path][a]).emit("user-joined", socket.id, connections[path])
+		}
 
-    // Notify the new user about existing users
-    const usersInRoom = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-    io.to(socket.id).emit('all-users', usersInRoom.filter(id => id !== socket.id));
-  });
+		if(messages[path] !== undefined){
+			for(let a = 0; a < messages[path].length; ++a){
+				io.to(socket.id).emit("chat-message", messages[path][a]['data'], 
+					messages[path][a]['sender'], messages[path][a]['socket-id-sender'])
+			}
+		}
+	})
 
-  // Handling sending a signal to another user
-  socket.on('sending-signal', ({ userToSignal, callerID, signal }) => {
-    io.to(userToSignal).emit('user-joined', { signal, callerID });
-  });
+	socket.on('signal', (toId, message) => {
+		io.to(toId).emit('signal', socket.id, message)
+	})
 
-  // Handling returning a signal from another user
-  socket.on('returning-signal', ({ signal, callerID }) => {
-    io.to(callerID).emit('receiving-returned-signal', { signal, id: socket.id });
-  });
+	socket.on('chat-message', (data, sender) => {
+		data = sanitizeString(data)
+		sender = sanitizeString(sender)
 
-  // Handling disconnection
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+		var key
+		var ok = false
+		for (const [k, v] of Object.entries(connections)) {
+			for(let a = 0; a < v.length; ++a){
+				if(v[a] === socket.id){
+					key = k
+					ok = true
+				}
+			}
+		}
 
-    // Notify other users in the room that someone has disconnected
-    io.sockets.adapter.rooms.forEach((room, roomId) => {
-      if (room.has(socket.id)) {
-        socket.to(roomId).emit('user-disconnected', socket.id);
-      }
-    });
-  });
-});
+		if(ok === true){
+			if(messages[key] === undefined){
+				messages[key] = []
+			}
+			messages[key].push({"sender": sender, "data": data, "socket-id-sender": socket.id})
 
-server.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+			for(let a = 0; a < connections[key].length; ++a){
+				io.to(connections[key][a]).emit("chat-message", data, sender, socket.id)
+			}
+		}
+	})
+
+	socket.on('disconnect', () => {
+		var diffTime = Math.abs(timeOnline[socket.id] - new Date())
+		var key
+		for (const [k, v] of JSON.parse(JSON.stringify(Object.entries(connections)))) {
+			for(let a = 0; a < v.length; ++a){
+				if(v[a] === socket.id){
+					key = k
+
+					for(let a = 0; a < connections[key].length; ++a){
+						io.to(connections[key][a]).emit("user-left", socket.id)
+					}
+			
+					var index = connections[key].indexOf(socket.id)
+					connections[key].splice(index, 1)
+
+					console.log(key, socket.id, Math.ceil(diffTime / 1000))
+
+					if(connections[key].length === 0){
+						delete connections[key]
+					}
+				}
+			}
+		}
+	})
+})
+
+server.listen(app.get('port'), () => {
+	console.log("listening on", app.get('port'))
+})

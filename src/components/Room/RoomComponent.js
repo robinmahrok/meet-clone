@@ -3,29 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import io from 'socket.io-client';
 import faker from 'faker';
-
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import { IconButton, Badge } from '@mui/material';
-import VideocamIcon from '@mui/icons-material/Videocam';
-import VideocamOffIcon from '@mui/icons-material/VideocamOff';
-import MicIcon from '@mui/icons-material/Mic';
-import MicOffIcon from '@mui/icons-material/MicOff';
-import ScreenShareIcon from '@mui/icons-material/ScreenShare';
-import StopScreenShareIcon from '@mui/icons-material/StopScreenShare';
-import CallEndIcon from '@mui/icons-material/CallEnd';
-import ChatIcon from '@mui/icons-material/Chat';
-
 import { message } from 'antd';
 import 'antd/dist/antd.css';
 
-import { Row } from 'reactstrap';
-import Modal from 'react-bootstrap/Modal';
 import 'bootstrap/dist/css/bootstrap.css';
 import RoomScreen from '../../screens/RoomScreen';
 // import './Video.css';
 
-const server_url = process.env.NODE_ENV === 'production' ? 'https://video.sebastienbiollo.com' : 'http://localhost:3000';
+const server_url = 'http://localhost:4001';
 
 var connections = {};
 const peerConnectionConfig = {
@@ -49,14 +34,13 @@ const RoomComponent = () => {
   const [showModal, setShowModal] = useState(false);
   const [screenAvailable, setScreenAvailable] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState('');
+  const [chatMessage, setChatMessage] = useState('');
   const [newMessages, setNewMessages] = useState(0);
   const [askForUsername, setAskForUsername] = useState(true);
   const [username, setUsername] = useState(faker.internet.userName());
 
   useEffect(() => {
     getPermissions();
-    getUserMedia();
   }, []);
 
   const getPermissions = async () => {
@@ -88,15 +72,23 @@ const RoomComponent = () => {
     }
   };
 
+  const getMedia = () => {
+    setVideo(videoAvailable);
+    setAudio(audioAvailable)
+    getUserMedia()
+    connectToSocketServer()
+  }
+
   const getUserMedia = () => {
     if ((video && videoAvailable) || (audio && audioAvailable)) {
-      navigator.mediaDevices.getUserMedia({ video, audio })
+      navigator.mediaDevices.getUserMedia({ video: video, audio: audio })
         .then(getUserMediaSuccess)
-        .catch((e) => console.log(e));
+        .then((stream) => { })
+        .catch((e) => console.log(e))
     } else {
       try {
-        let tracks = localVideoref.current.srcObject.getTracks();
-        tracks.forEach((track) => track.stop());
+        let tracks = localVideoref.current.srcObject.getTracks()
+        tracks.forEach(track => track.stop())
       } catch (e) { }
     }
   };
@@ -119,7 +111,7 @@ const RoomComponent = () => {
       connections[id].createOffer().then((description) => {
         connections[id].setLocalDescription(description)
           .then(() => {
-            socket.emit('signal', id, JSON.stringify({ sdp: connections[id].localDescription }));
+            socket.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }));
           })
           .catch((e) => console.log(e));
       });
@@ -174,6 +166,7 @@ const RoomComponent = () => {
     ctx.resume()
     return Object.assign(dst.stream.getAudioTracks()[0], { enabled: false })
   }
+
   const black = ({ width = 640, height = 480 } = {}) => {
     let canvas = Object.assign(document.createElement("canvas"), { width, height })
     canvas.getContext('2d').fillRect(0, 0, width, height)
@@ -199,7 +192,7 @@ const RoomComponent = () => {
       connections[id].createOffer().then((description) => {
         connections[id].setLocalDescription(description)
           .then(() => {
-            socket.emit('signal', id, JSON.stringify({ sdp: connections[id].localDescription }));
+            socket.emit('signal', id, JSON.stringify({ 'sdp': connections[id].localDescription }));
           })
           .catch((e) => console.log(e));
       });
@@ -236,7 +229,7 @@ const RoomComponent = () => {
               connections[fromId].createAnswer().then((description) => {
                 connections[fromId].setLocalDescription(description)
                   .then(() => {
-                    socket.emit('signal', fromId, JSON.stringify({ sdp: connections[fromId].localDescription }));
+                    socket.emit('signal', fromId, JSON.stringify({ 'sdp': connections[fromId].localDescription }));
                   })
                   .catch((e) => console.log(e));
               }).catch((e) => console.log(e));
@@ -287,7 +280,7 @@ const RoomComponent = () => {
 
   const connectToSocketServer = () => {
     socket = io.connect(server_url, { secure: true });
-
+    console.log(socket,'kkkkkkkkkkkk');
     socket.on('signal', gotMessageFromServer);
 
     socket.on('connect', () => {
@@ -308,7 +301,8 @@ const RoomComponent = () => {
         }
       });
 
-      socket.on('user-joined', (id, count, clients) => {
+      socket.on('user-joined', (id, clients) => {
+        console.log(clients,'iiiiiiiiii');
         clients.forEach((socketListId) => {
           connections[socketListId] = new RTCPeerConnection(peerConnectionConfig);
 
@@ -323,27 +317,26 @@ const RoomComponent = () => {
             if (searchVideo !== null) {
               searchVideo.srcObject = event.stream;
             } else {
-              elms = count;
-              let main = document.getElementById('main');
-              let cssMesure = changeCssVideos(main);
+              elms = clients.length;
+              let main = document.getElementById('main')
+              let cssMesure = changeCssVideos(main)
 
-              let video = document.createElement('video');
+              let video = document.createElement('video')
 
-              video.style.minWidth = cssMesure.minWidth;
-              video.style.minHeight = cssMesure.minHeight;
-              video.style.setProperty('width', cssMesure.width);
-              video.style.setProperty('height', cssMesure.height);
-              video.style.margin = '10px';
-              video.style.borderStyle = 'solid';
-              video.style.borderColor = '#bdbdbd';
-              video.style.objectFit = 'fill';
+              let css = {
+                minWidth: cssMesure.minWidth, minHeight: cssMesure.minHeight, maxHeight: "100%", margin: "10px",
+                borderStyle: "solid", borderColor: "#bdbdbd", objectFit: "fill"
+              }
+              for (let i in css) video.style[i] = css[i]
 
-              video.srcObject = event.stream;
-              video.autoplay = true;
-              video.muted = true;
-              video.setAttribute('data-socket', socketListId);
+              video.style.setProperty("width", cssMesure.width)
+              video.style.setProperty("height", cssMesure.height)
+              video.setAttribute('data-socket', socketListId)
+              video.srcObject = event.stream
+              video.autoplay = true
+              video.playsinline = true
 
-              main.appendChild(video);
+              main.appendChild(video)
             }
           };
 
@@ -380,12 +373,12 @@ const RoomComponent = () => {
 
   const handleVideo = () => {
     setVideo(!video);
-    getUserMedia();
+    getUserMedia("VIDEO", true);
   };
 
   const handleAudio = () => {
     setAudio(!audio);
-    getUserMedia();
+    getUserMedia("AUDIO", true);
   };
 
   const handleScreen = () => {
@@ -403,17 +396,7 @@ const RoomComponent = () => {
 
   const openChat = () => setShowModal(!showModal);
 
-  const handleUsername = (e) => setUsername(e.target.value);
-
-  const sendMessage = () => {
-    socket.emit('chat-message', message, username);
-    setMessage('');
-    setMessages(prevMessages => [
-      ...prevMessages,
-      username + ":" + message,
-    ]);
-    setNewMessages(newMessages + 1);
-  };
+  const closeChat = () => setShowModal(false);
 
   const addMessage = (data, sender, socketIdSender) => {
     setMessages(prevMessages => [
@@ -425,15 +408,70 @@ const RoomComponent = () => {
     }
   }
 
-  const handleMessage = (e) => setMessage(e.target.value);
+  const handleUsername = (e) => setUsername(e.target.value);
+
+  const sendMessage = () => {
+    socket.emit('chat-message', chatMessage, username);
+    setChatMessage('');
+    setMessages(prevMessages => [
+      ...prevMessages,
+      username + ":" + chatMessage,
+    ]);
+    setNewMessages(newMessages + 1);
+  };
+
+
+
+  const handleMessage = (e) => setChatMessage(e.target.value);
 
   const handleUsernameSet = () => {
     setAskForUsername(false);
     connectToSocketServer();
   };
+
+  const copyUrl = () => {
+    let text = window.location.href
+    if (!navigator.clipboard) {
+      let textArea = document.createElement("textarea")
+      textArea.value = text
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      try {
+        document.execCommand('copy')
+        message.success("Link copied to clipboard!")
+      } catch (err) {
+        message.error("Failed to copy")
+      }
+      document.body.removeChild(textArea)
+      return
+    }
+    navigator.clipboard.writeText(text).then(function () {
+      message.success("Link copied to clipboard!")
+    }, () => {
+      message.error("Failed to copy")
+    })
+  }
+
+  const connect = () => {
+    setAskForUsername(false);
+    getMedia();
+  }
+
+  const isChrome = function () {
+    let userAgent = (navigator && (navigator.userAgent || '')).toLowerCase()
+    let vendor = (navigator && (navigator.vendor || '')).toLowerCase()
+    let matchChrome = /google inc/.test(vendor) ? userAgent.match(/(?:chrome|crios)\/(\d+)/) : null
+    // let matchFirefox = userAgent.match(/(?:firefox|fxios)\/(\d+)/)
+    // return matchChrome !== null || matchFirefox !== null
+    return matchChrome !== null
+  }
+
+
   const props = {
     askForUsername, username, handleUsername, handleUsernameSet, localVideoref, handleVideo, video, handleAudio, audio, handleEndCall,
-    screenAvailable, handleScreen, newMessages, openChat, showModal, screen, messages, message, sendMessage, handleMessage
+    screenAvailable, handleScreen, newMessages, openChat, showModal, screen, messages, chatMessage, sendMessage, handleMessage, copyUrl,
+    isChrome, connect
   }
   return (
     <RoomScreen {...props} />
