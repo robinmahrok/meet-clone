@@ -33,7 +33,7 @@
   "preinstall": "nodemon server.js", 
   "scripts": {
     "start": "concurrently -n 'server,client' -c 'red,green'  \"nodemon server.js\" \"react-scripts start\"",
-    "build": "react-scripts build",
+    "build": "concurrently \"nodemon server.js\" \"react-scripts build\"",
     "server": "concurrently NODE_ENV=production \"nodemon server.js\" \"react-scripts start\"",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
