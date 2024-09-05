@@ -10,7 +10,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 import RoomScreen from '../../screens/RoomScreen';
 // import './Video.css';
 
-const server_url = 'https://meet-clone-assignment.netlify.app';
+const server_url = process.env.SERVER_URL || 'http://localhost:4001';
 
 var connections = {};
 const peerConnectionConfig = {
