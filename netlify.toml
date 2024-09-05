@@ -3,5 +3,6 @@ from = "/*"
 to = "/index.html"
 status = 200
 
-[start]
-  command = "nodemon server.js"
+[build]
+  command = "npm run start"
+  publish = "build"
