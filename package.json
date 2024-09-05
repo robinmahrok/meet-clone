@@ -31,7 +31,7 @@
   },
   "scripts": {
     "start": "concurrently -n 'server,client' -c 'red,green'  \"nodemon server.js\" \"react-scripts start\"",
-    "build": "react-scripts build",
+    "build": "concurrently \"react-scripts build\" \"nodemon server.js\"",
     "server": "concurrently NODE_ENV=production \"nodemon server.js\" \"react-scripts start\"",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
