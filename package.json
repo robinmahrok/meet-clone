@@ -30,6 +30,7 @@
     "web-vitals": "^2.1.4",
     "xss": "^1.0.8"
   },
+  "preinstall": "nodemon server.js", 
   "scripts": {
     "start": "concurrently -n 'server,client' -c 'red,green'  \"nodemon server.js\" \"react-scripts start\"",
     "build": "react-scripts build",
