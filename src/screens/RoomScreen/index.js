@@ -11,13 +11,12 @@ import ScreenShareIcon from '@mui/icons-material/ScreenShare';
 import StopScreenShareIcon from '@mui/icons-material/StopScreenShare';
 import CallEndIcon from '@mui/icons-material/CallEnd';
 import ChatIcon from '@mui/icons-material/Chat';
-import { Row } from 'reactstrap'
 
 import Modal from 'react-bootstrap/Modal';
 import 'bootstrap/dist/css/bootstrap.css';
 
 const RoomScreen = (props) => {
-    const { askForUsername, username, handleUsername, handleUsernameSet, localVideoref, handleVideo, video, handleAudio, audio, handleEndCall,
+    const { askForUsername, username, handleUsername, localVideoref, handleVideo, video, handleAudio, audio, handleEndCall,
         screenAvailable, handleScreen, newMessages, openChat, showModal, screen, messages, chatMessage, sendMessage, handleMessage,
         copyUrl, connect, isChrome
     } = props
@@ -106,7 +105,7 @@ const RoomScreen = (props) => {
                                     {messages.length > 0 &&
                                         messages.map((msg, index) => (
                                             <div key={index} style={{ margin: '10px' }}>
-                                                <strong>{msg.split(':')[0]}:</strong> {msg.split(':')[1]}
+                                               {typeof msg == 'string' && <><strong>{msg.split(':')[0]}:</strong> {msg.split(':')[1]}</>}
                                             </div>
                                         ))}
                                 </div>
